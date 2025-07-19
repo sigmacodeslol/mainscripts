@@ -1,1 +1,1 @@
-return function() print('UwU') end
+print('hi')
