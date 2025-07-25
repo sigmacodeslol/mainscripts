@@ -22,6 +22,7 @@ end
 
 FTF.noclip = {
     enabled = false,
+    called = false,
     key = "X" -- Default key as a string
 }
 
@@ -68,8 +69,5 @@ function FTF:noclip()
         end
     end)
 end
-
--- Initialize noclip functionality
-FTF:noclip()
 
 return FTF
