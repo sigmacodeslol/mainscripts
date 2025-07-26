@@ -29,102 +29,55 @@ FTF.rejoin = {
 FTF.noclip = {
     enabled = false,
     called = false,
-    key = "X", -- Default key as a string
-    canuse = true, -- Added canuse flag
-    steppedConnection = nil,
-    diedConnection = nil,
+    key = "X",
+    canuse = true,
     fn = function()
-        local Workspace = game:GetService("Workspace")
+        local function setNoclip(state)
+            if not LocalPlayer.Character then return end
+            local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+            if not humanoidRootPart or not humanoid then return end
 
-        local function getCharacter()
-            return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            FTF.noclip.enabled = state
+
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part ~= humanoidRootPart then
+                    part.CanCollide = not state
+                end
+            end
         end
 
-        local function showNotification(message)
-            -- Placeholder for notification (user can replace with actual notification system)
-            print(message)
+        local function onInputBegan(input, gameProcessedEvent)
+            if gameProcessedEvent then return end
+            if input.KeyCode == Enum.KeyCode[FTF.noclip.key] then
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) or UserInputService:IsKeyDown(Enum.KeyCode.RightAlt) then
+                    FTF.noclip.canuse = not FTF.noclip.canuse
+                elseif FTF.noclip.canuse then
+                    setNoclip(not FTF.noclip.enabled)
+                end
+            end
         end
 
-        local function toggleNoclip()
-            if not FTF.noclip.canuse then return end
-            FTF.noclip.enabled = not FTF.noclip.enabled
+        if not FTF.noclip.called then
+            FTF.noclip.called = true
+            UserInputService.InputBegan:Connect(onInputBegan)
 
-            if FTF.noclip.enabled then
-                local character = getCharacter()
-                local humanoid = character:WaitForChild("Humanoid")
-                local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-                -- Disable noclip on death
-                FTF.noclip.diedConnection = humanoid.Died:Connect(function()
-                    FTF.noclip.enabled = false
-                    showNotification("Noclip disabled due to death!")
-                end)
-
-                -- Handle noclip for character parts
-                FTF.noclip.steppedConnection = RunService.Stepped:Connect(function()
-                    if FTF.noclip.enabled and character and humanoidRootPart then
-                        for _, part in pairs(character:GetChildren()) do
-                            if part:IsA("BasePart") then
+            RunService.Stepped:Connect(function()
+                if FTF.noclip.enabled and LocalPlayer.Character then
+                    local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part ~= humanoidRootPart then
                                 part.CanCollide = false
                             end
                         end
                     end
-                end)
-
-                -- Toggle all workspace parts except baseplate
-                for _, part in pairs(Workspace:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Anchored and part.Name ~= "Baseplate" then
-                        part.CanCollide = false
-                    end
                 end
-            else
-                -- Re-enable collisions for workspace parts except baseplate
-                for _, part in pairs(Workspace:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Anchored and part.Name ~= "Baseplate" then
-                        part.CanCollide = true
-                    end
-                end
-
-                -- Disconnect stepped connection if it exists
-                if FTF.noclip.steppedConnection then
-                    FTF.noclip.steppedConnection:Disconnect()
-                    FTF.noclip.steppedConnection = nil
-                end
-                -- Disconnect died connection if it exists
-                if FTF.noclip.diedConnection then
-                    FTF.noclip.diedConnection:Disconnect()
-                    FTF.noclip.diedConnection = nil
-                end
-            end
+            end)
         end
-
-        local function setup()
-            local char = getCharacter()
-            -- Setup character-specific connections
-            if FTF.noclip.enabled then
-                toggleNoclip() -- Re-apply noclip if enabled
-            end
-        end
-
-        if LocalPlayer.Character then
-            setup()
-        end
-        LocalPlayer.CharacterAdded:Connect(setup)
-
-        -- Handle key press to toggle noclip or canuse
-        UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-            if gameProcessedEvent then return end
-            local keyCode = Enum.KeyCode[FTF.noclip.key] or Enum.KeyCode.X
-            if input.KeyCode == keyCode then
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) or UserInputService:IsKeyDown(Enum.KeyCode.RightAlt) then
-                    FTF.noclip.canuse = not FTF.noclip.canuse
-                    showNotification("Noclip canuse set to: " .. tostring(FTF.noclip.canuse))
-                else
-                    toggleNoclip()
-                end
-            end
-        end)
     end
 }
+
+FTF.noclip.fn()
 
 return FTF
