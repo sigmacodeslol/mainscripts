@@ -27,33 +27,27 @@ FTF.noclip = {
     enabled = false,
     called = false,
     key = "X", -- Default key as a string
+    canuse = true, -- Added canuse flag
     fn = function()
         local Players = game:GetService("Players")
         local LocalPlayer = Players.LocalPlayer
+        local Workspace = game:GetService("Workspace")
 
-        local function onTouched(part)
-            if not FTF.noclip.enabled then return end
-            if not part:IsA("BasePart") then return end
-            if not part.Anchored then return end
-            if not part.CanCollide then return end
-
-            local character = LocalPlayer.Character
-            if not character then return end
-
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-
-            -- Prevent disabling floors
-            if part.Position.Y < (hrp.Position.Y - hrp.Size.Y) then return end
-
-            -- Passed all checks
-            part.CanCollide = false
+        local function toggleNoclip()
+            if not FTF.noclip.canuse then return end
+            FTF.noclip.enabled = not FTF.noclip.enabled
+            
+            -- Get all parts in Workspace
+            for _, part in pairs(Workspace:GetDescendants()) do
+                if part:IsA("BasePart") and part.Anchored then
+                    part.CanCollide = not FTF.noclip.enabled
+                end
+            end
         end
 
         local function setup()
             local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            hrp.Touched:Connect(onTouched)
+            -- No need for Touched connection since we're toggling all parts
         end
 
         if LocalPlayer.Character then
@@ -61,12 +55,16 @@ FTF.noclip = {
         end
         LocalPlayer.CharacterAdded:Connect(setup)
 
-        -- Handle key press to toggle noclip
+        -- Handle key press to toggle noclip or canuse
         UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
             if gameProcessedEvent then return end
             local keyCode = Enum.KeyCode[FTF.noclip.key] or Enum.KeyCode.X
             if input.KeyCode == keyCode then
-                FTF.noclip.enabled = not FTF.noclip.enabled
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) or UserInputService:IsKeyDown(Enum.KeyCode.RightAlt) then
+                    FTF.noclip.canuse = not FTF.noclip.canuse
+                else
+                    toggleNoclip()
+                end
             end
         end)
     end
