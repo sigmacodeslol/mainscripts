@@ -30,7 +30,7 @@ FTF.noclip = {
     enabled = false,
     called = false,
     key = "X",
-    canuse = true,
+    canuse = false,
     fn = function()
         local UserInputService = game:GetService("UserInputService")
         local RunService = game:GetService("RunService")
@@ -143,7 +143,5 @@ FTF.noclip = {
         end)
     end
 }
-
-FTF.noclip.fn()
 
 return FTF
