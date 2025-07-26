@@ -12,11 +12,11 @@ FTF.rejoin = {
         local TeleportService = game:GetService("TeleportService")
         local Players = game:GetService("Players")
         local LocalPlayer = Players.LocalPlayer
-        
+
         local function rejoinGame()
             local placeId = game.PlaceId
             local jobId = game.JobId
-        
+
             if placeId and jobId then
                 TeleportService:TeleportToPlaceInstance(placeId, jobId, LocalPlayer)
             else
@@ -29,40 +29,50 @@ FTF.rejoin = {
 
 FTF_fn.noclip = function()
     local player = game.Players.LocalPlayer
-        local starterGui = game:GetService("StarterGui")
-        local steppedConnection = nil
-        local isActive = FTF.noclip.active
-        
-        local function getCharacter()
-            return player.Character or player.CharacterAdded:Wait()
-        end
-        
-        local function showNotification(message)
-            starterGui:SetCore("SendNotification", {
+    local starterGui = game:GetService("StarterGui")
+    local steppedConnection = nil
+    local isActive = FTF.noclip.active
+
+    local function getCharacter()
+        return player.Character or player.CharacterAdded:Wait()
+    end
+
+    local function showNotification(message)
+        starterGui:SetCore(
+            "SendNotification",
+            {
                 Title = "Script Status",
                 Text = "Phase " .. message,
                 Duration = 2
-            })
+            }
+        )
+    end
+
+    local function toggleNoClip()
+        if not FTF.noclip.enabled or not FTF.noclip.canuse then
+            return
         end
-        
-        local function toggleNoClip()
-            if not FTF.noclip.enabled or not FTF.noclip.canuse then return end
-            FTF.noclip.enabled = false
-        
-            isActive = not isActive
-            showNotification(isActive and "Enabled!" or "Disabled!")
-        
-            local character = getCharacter()
-            local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-        
-            if isActive then
-                local humanoid = character:WaitForChild("Humanoid")
-                diedConnection = humanoid.Died:Connect(function()
+        FTF.noclip.enabled = false
+
+        isActive = not isActive
+        showNotification(isActive and "Enabled!" or "Disabled!")
+
+        local character = getCharacter()
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+        if isActive then
+            local humanoid = character:WaitForChild("Humanoid")
+            diedConnection =
+                humanoid.Died:Connect(
+                function()
                     isActive = false
                     showNotification("Disabled due to death!")
-                end)
-        
-                steppedConnection = RunService.Stepped:Connect(function()
+                end
+            )
+
+            steppedConnection =
+                RunService.Stepped:Connect(
+                function()
                     if isActive and character and humanoidRootPart then
                         for _, part in pairs(character:GetChildren()) do
                             if part:IsA("BasePart") then
@@ -70,18 +80,23 @@ FTF_fn.noclip = function()
                             end
                         end
                     end
-                end)
-            elseif steppedConnection then
-                steppedConnection:Disconnect()
-                steppedConnection = nil
-            end
-        
-            FTF.noclip.enabled = true
+                end
+            )
+        elseif steppedConnection then
+            steppedConnection:Disconnect()
+            steppedConnection = nil
         end
-        
-        inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
-        
+
+        FTF.noclip.enabled = true
+    end
+
+    inputConnection =
+        UserInputService.InputBegan:Connect(
+        function(input, gameProcessed)
+            if gameProcessed then
+                return
+            end
+
             local keyCode = Enum.KeyCode[FTF.noclip.key] or Enum.KeyCode.X
             if input.KeyCode == keycode then
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) then
@@ -90,9 +105,10 @@ FTF_fn.noclip = function()
                     toggleNoClip()
                 end
             end
-        end)
-        FTF.noclip.called = true
-    end
+        end
+    )
+    FTF.noclip.called = true
+end
 
 _ftf_noclip_called = false
 FTF.noclip = {
