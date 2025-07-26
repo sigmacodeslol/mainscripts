@@ -32,49 +32,115 @@ FTF.noclip = {
     key = "X",
     canuse = true,
     fn = function()
-        local function setNoclip(state)
-            if not LocalPlayer.Character then return end
-            local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-            if not humanoidRootPart or not humanoid then return end
-
-            FTF.noclip.enabled = state
-
-            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") and part ~= humanoidRootPart then
-                    part.CanCollide = not state
-                end
-            end
+        local UserInputService = game:GetService("UserInputService")
+        local RunService = game:GetService("RunService")
+        local player = game.Players.LocalPlayer
+        local starterGui = game:GetService("StarterGui")
+        
+        local isActive = false
+        local isScriptDisabled = false
+        local canToggle = true
+        local steppedConnection = nil
+        local diedConnection = nil
+        local inputConnection = nil
+        
+        local function getCharacter()
+            return player.Character or player.CharacterAdded:Wait()
         end
-
-        local function onInputBegan(input, gameProcessedEvent)
-            if gameProcessedEvent then return end
-            if input.KeyCode == Enum.KeyCode[FTF.noclip.key] then
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) or UserInputService:IsKeyDown(Enum.KeyCode.RightAlt) then
-                    FTF.noclip.canuse = not FTF.noclip.canuse
-                elseif FTF.noclip.canuse then
-                    setNoclip(not FTF.noclip.enabled)
-                end
-            end
+        
+        local function showNotification(message)
+            starterGui:SetCore("SendNotification", {
+                Title = "Script Status",
+                Text = "Phase " .. message,
+                Duration = 2
+            })
         end
-
-        if not FTF.noclip.called then
-            FTF.noclip.called = true
-            UserInputService.InputBegan:Connect(onInputBegan)
-
-            RunService.Stepped:Connect(function()
-                if FTF.noclip.enabled and LocalPlayer.Character then
-                    local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if humanoidRootPart then
-                        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                            if part:IsA("BasePart") and part ~= humanoidRootPart then
+        
+        local function toggleNoClip()
+            if not canToggle or isScriptDisabled or not FTF.noclip.canuse then return end
+            canToggle = false
+        
+            isActive = not isActive
+            showNotification(isActive and "Enabled!" or "Disabled!")
+        
+            local character = getCharacter()
+            local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        
+            if isActive then
+                local humanoid = character:WaitForChild("Humanoid")
+                diedConnection = humanoid.Died:Connect(function()
+                    isActive = false
+                    showNotification("Disabled due to death!")
+                end)
+        
+                steppedConnection = RunService.Stepped:Connect(function()
+                    if isActive and character and humanoidRootPart then
+                        for _, part in pairs(character:GetChildren()) do
+                            if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
                     end
-                end
-            end)
+                end)
+            elseif steppedConnection then
+                steppedConnection:Disconnect()
+                steppedConnection = nil
+            end
+        
+            task.wait(0.5)
+            canToggle = true
         end
+        
+        local function destroyScript()
+            if isScriptDisabled then return end
+            isScriptDisabled = true
+            isActive = false
+        
+            -- Disconnect all event connections
+            if steppedConnection then
+                steppedConnection:Disconnect()
+                steppedConnection = nil
+            end
+            if diedConnection then
+                diedConnection:Disconnect()
+                diedConnection = nil
+            end
+            if inputConnection then
+                inputConnection:Disconnect()
+                inputConnection = nil
+            end
+        
+            -- Restore collision
+            local character = getCharacter()
+            for _, part in pairs(character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        
+            starterGui:SetCore("SendNotification", {
+                Title = "Script Stopped",
+                Text = "Phase fully destroyed!",
+                Duration = 2
+            })
+        
+            -- Clear all local variables
+            isActive = nil
+            isScriptDisabled = nil
+            canToggle = nil
+        end
+        
+        inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+        
+            local keyCode = Enum.KeyCode[FTF.noclip.key] or Enum.KeyCode.X
+            if input.KeyCode == keyCode and not UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) then
+                toggleNoClip()
+            elseif input.KeyCode == Enum.KeyCode.X and UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt) then
+                FTF.noclip.canuse = not FTF.noclip.canuse
+                showNotification("NoClip " .. (FTF.noclip.canuse and "usable!" or "unusable!"))
+            end
+        end)
     end
 }
 
