@@ -1,4 +1,5 @@
 local FTF = {}
+local FTF_fn = {}
 local _loadhttpUrl = "https://raw.githubusercontent.com/sigmacodeslol/mainscripts/refs/heads/master/loadhttp.lua"
 local loadhttp = loadstring(game:HttpGet(_loadhttpUrl))()("!HozDm3gFd")
 local UserInputService = game:GetService("UserInputService")
@@ -26,19 +27,11 @@ FTF.rejoin = {
     end
 }
 
-FTF.noclip = {
-    enabled = false,
-    called = false,
-    key = "X",
-    canuse = false,
-    fn = function()
-        local player = game.Players.LocalPlayer
+FTF_fn.noclip = function()
+    local player = game.Players.LocalPlayer
         local starterGui = game:GetService("StarterGui")
-        
-        local isActive = false
-        local isScriptDisabled = false
-        local canToggle = true
         local steppedConnection = nil
+        local isActive = FTF.noclip.active
         
         local function getCharacter()
             return player.Character or player.CharacterAdded:Wait()
@@ -53,8 +46,8 @@ FTF.noclip = {
         end
         
         local function toggleNoClip()
-            if not canToggle or isScriptDisabled or not FTF.noclip.canuse then return end
-            canToggle = false
+            if not FTF.noclip.enabled or not FTF.noclip.canuse then return end
+            FTF.noclip.enabled = false
         
             isActive = not isActive
             showNotification(isActive and "Enabled!" or "Disabled!")
@@ -83,7 +76,7 @@ FTF.noclip = {
                 steppedConnection = nil
             end
         
-            canToggle = true
+            FTF.noclip.enabled = true
         end
         
         inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -98,6 +91,20 @@ FTF.noclip = {
                 end
             end
         end)
+        FTF.noclip.called = true
+    end
+
+_ftf_noclip_called = false
+FTF.noclip = {
+    enabled = false,
+    active = false,
+    key = "X",
+    canuse = false,
+    fn = function()
+        if not _ftf_noclip_called then
+            FTF_fn.noclip()
+            _ftf_noclip_called = true
+        end
     end
 }
 
